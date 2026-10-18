@@ -1,0 +1,399 @@
+openapi: 3.0.3
+info:
+  title: Fazenda Artesanal API
+  version: 1.0.0
+  description: Contrato consumido pelo front-end. Regras de negócio detalhadas em docs/api.md.
+servers:
+  - url: /api
+security:
+  - bearer: []
+tags:
+  - name: auth
+  - name: catalog
+  - name: orders
+  - name: admin
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200': { $ref: '#/components/responses/Auth' }
+        '401': { $ref: '#/components/responses/Error' }
+  /auth/register:
+    post:
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+      responses:
+        '201': { $ref: '#/components/responses/Auth' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /auth/me:
+    get:
+      tags: [auth]
+      responses:
+        '200':
+          description: Usuário logado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /categories:
+    get:
+      tags: [catalog]
+      security: []
+      responses:
+        '200':
+          description: Categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Category' }
+  /products:
+    get:
+      tags: [catalog]
+      security: []
+      parameters:
+        - { name: category, in: query, schema: { $ref: '#/components/schemas/CategorySlug' } }
+        - { name: q, in: query, schema: { type: string }, description: Busca sem acento em nome, resumo e ingredientes }
+        - { name: sort, in: query, schema: { type: string, enum: [featured, price-asc, price-desc, name], default: featured } }
+        - { name: featured, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Produtos disponíveis
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+  /products/{slug}:
+    get:
+      tags: [catalog]
+      security: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Produto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /orders:
+    post:
+      tags: [orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderInput' }
+      responses:
+        '201':
+          description: Pedido criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /orders/me:
+    get:
+      tags: [orders]
+      responses:
+        '200':
+          description: Pedidos do usuário, mais recentes primeiro
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /admin/stats:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: Indicadores do painel
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStats' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /admin/products:
+    get:
+      tags: [admin]
+      responses:
+        '200':
+          description: Todos os produtos, inclusive indisponíveis
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+    post:
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '422': { $ref: '#/components/responses/Error' }
+  /admin/products/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200':
+          description: Atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [admin]
+      responses:
+        '204': { description: Excluído }
+        '404': { $ref: '#/components/responses/Error' }
+  /admin/orders:
+    get:
+      tags: [admin]
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
+      responses:
+        '200':
+          description: Pedidos, mais recentes primeiro
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+  /admin/orders/{id}/status:
+    patch:
+      tags: [admin]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/OrderStatus' }
+      responses:
+        '200':
+          description: Pedido atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Auth:
+      description: Sessão criada
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [token, user]
+            properties:
+              token: { type: string }
+              user: { $ref: '#/components/schemas/User' }
+    Error:
+      description: Erro
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: VALIDATION_ERROR }
+            message: { type: string, example: Confira os campos destacados. }
+            fields:
+              type: object
+              additionalProperties: { type: string }
+
+    Role: { type: string, enum: [customer, admin] }
+    User:
+      type: object
+      required: [id, name, email, phone, role, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        role: { $ref: '#/components/schemas/Role' }
+        createdAt: { type: string, format: date-time }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    RegisterInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 2 }
+        email: { type: string, format: email }
+        phone: { type: string }
+        password: { type: string, minLength: 6 }
+
+    CategorySlug: { type: string, enum: [tortas, massas] }
+    Category:
+      type: object
+      required: [slug, name, description]
+      properties:
+        slug: { $ref: '#/components/schemas/CategorySlug' }
+        name: { type: string }
+        description: { type: string }
+    ProductInput:
+      type: object
+      required: [slug, name, category, summary, description, priceCents, image, ingredients, serves, preparation, leadTimeDays, featured, available]
+      properties:
+        slug: { type: string, pattern: '^[a-z0-9-]+$' }
+        name: { type: string }
+        category: { $ref: '#/components/schemas/CategorySlug' }
+        summary: { type: string }
+        description: { type: string }
+        priceCents: { type: integer, minimum: 1, description: Preço em centavos }
+        image: { type: string, description: URL ou caminho da foto }
+        ingredients: { type: array, items: { type: string } }
+        serves: { type: string }
+        preparation: { type: string }
+        leadTimeDays: { type: integer, minimum: 0 }
+        featured: { type: boolean }
+        available: { type: boolean }
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string }
+
+    FulfillmentType: { type: string, enum: [pickup, delivery] }
+    OrderStatus: { type: string, enum: [received, preparing, ready, completed, cancelled] }
+    Address:
+      type: object
+      required: [street, number, district, city, zip]
+      properties:
+        street: { type: string }
+        number: { type: string }
+        district: { type: string }
+        city: { type: string }
+        zip: { type: string }
+        complement: { type: string }
+    CreateOrderInput:
+      type: object
+      required: [items, fulfillment, scheduledFor]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId: { type: string }
+              quantity: { type: integer, minimum: 1, maximum: 20 }
+        fulfillment: { $ref: '#/components/schemas/FulfillmentType' }
+        address: { $ref: '#/components/schemas/Address' }
+        scheduledFor: { type: string, format: date }
+        notes: { type: string, maxLength: 500 }
+    Order:
+      type: object
+      required: [id, code, userId, customerName, items, fulfillment, address, scheduledFor, notes, subtotalCents, deliveryFeeCents, totalCents, status, createdAt]
+      properties:
+        id: { type: string }
+        code: { type: string, example: FA-1101 }
+        userId: { type: string }
+        customerName: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, name, unitPriceCents, quantity]
+            properties:
+              productId: { type: string }
+              name: { type: string }
+              unitPriceCents: { type: integer }
+              quantity: { type: integer }
+        fulfillment: { $ref: '#/components/schemas/FulfillmentType' }
+        address:
+          allOf: [{ $ref: '#/components/schemas/Address' }]
+          nullable: true
+        scheduledFor: { type: string, format: date }
+        notes: { type: string }
+        subtotalCents: { type: integer }
+        deliveryFeeCents: { type: integer }
+        totalCents: { type: integer }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        createdAt: { type: string, format: date-time }
+    AdminStats:
+      type: object
+      required: [ordersToday, revenueTodayCents, pendingOrders, revenueLast7Days, topProducts]
+      properties:
+        ordersToday: { type: integer }
+        revenueTodayCents: { type: integer }
+        pendingOrders: { type: integer }
+        revenueLast7Days:
+          type: array
+          items:
+            type: object
+            required: [date, totalCents]
+            properties:
+              date: { type: string, format: date }
+              totalCents: { type: integer }
+        topProducts:
+          type: array
+          items:
+            type: object
+            required: [productId, name, quantity]
+            properties:
+              productId: { type: string }
+              name: { type: string }
+              quantity: { type: integer }

@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-porcelana font-sans text-[1.0625rem] leading-relaxed text-tomilho antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-normal text-tomilho;
+  }
+  ::selection {
+    @apply bg-acafrao-wash text-tomilho;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-beterraba ring-offset-2 ring-offset-porcelana;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  /* Etiqueta de herbário: bloco de informação com borda fina e cantos retos */
+  .specimen {
+    @apply border border-tomilho/25 bg-porcelana;
+  }
+}
